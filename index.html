@@ -78,7 +78,7 @@ is used by our example image loader-->
 <script src="bower_components/cornerstoneMath/dist/cornerstoneMath.min.js"></script>
 
 <!-- include the cornerstone tools library -->
-<script src="lib/cornerstoneTools.js"></script>
+<script src="bower_components/cornerstoneTools/dist/cornerstoneTools.js"></script>
 
 <!-- include special code for these examples which provides images -->
 <script src="lib/exampleImageLoader.js"></script>
@@ -96,17 +96,7 @@ is used by our example image loader-->
 
     function foo(dataSetsAndFiles) {
 
-/*
-        var imageIds = [
-            'example://1',
-            'example://2'
-        ];
 
-        var stack = {
-            currentImageIdIndex : 0,
-            imageIds: imageIds
-        };
-*/
         var timeSeries = {
             currentStackIndex :0,
             stacks : [
