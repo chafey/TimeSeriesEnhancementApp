@@ -1,0 +1,46 @@
+{
+  "name": "fmru",
+  "version": "0.1.0",
+  "description": "FMRU",
+  "main": "index.js",
+  "ignore": [
+    "examples",
+    "src",
+    "test",
+    "gruntfile.js",
+    "package.json",
+    "bower.json",
+    ".gitignore"
+  ],
+  "dependencies": {
+    "cornerstone": "~0.7.0",
+    "cornerstoneMath": "~0.1.1",
+    "cornerstone-file-image-loader": "~0.4.6",
+    "cornerstoneTools": "~0.6.0",
+    "dicomParser": "~0.7.1",
+    "hammerjs": "~1.0.10",
+    "jquery": "~2.1.1",
+    "c3": "~0.4.9"
+  },
+  "devDependencies": {
+    "qunit": "~1.14.0",
+    "jquery": "~2.1.1"
+  },
+  "license": "MIT",
+  "authors": [
+    "Chris Hafey",
+    "Prasath"
+  ],
+  "homepage": "https://github.com/prasath-rasterimages/cornerstoneTools",
+  "keywords": [
+    "DICOM",
+    "medical",
+    "imaging",
+    "cornerstone",
+    "cornerstoneTools"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prasath-rasterimages/cornerstoneTools.git"
+  }
+}

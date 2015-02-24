@@ -1,0 +1,272 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <!-- support for mobile touch devices -->
+    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+
+    <!-- twitter bootstrap CSS stylesheet - not required by cornerstoneTools -->
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+
+    <link href="bower_components/cornerstone/dist/cornerstone.min.css" rel="stylesheet">
+    <link href="bower_components/c3/c3.css" rel="stylesheet">
+
+</head>
+<body>
+<div class="container">
+    <div class="page-header">
+        <h1>
+            Time Series Scroll Tools Example
+        </h1>
+        <p>
+            This page contains an example of the time series scroll tool.  Change to different time points
+            by using the mouse wheel or left click dragging.  You can also start/stop the play tool.
+        </p>
+
+    </div>
+
+    <input type="file" id="selectFolder" webkitdirectory="">
+
+
+    <div class="row">
+        <div class="col-xs-2">
+            <ul class="list-group">
+                <a href="#" id="playClip" class="list-group-item">Play Time Series</a>
+                <a href="#" id="stopClip" class="list-group-item">Stop Time Series</a>
+            </ul>
+        </div>
+        <div class="col-xs-6">
+            <div style="width:256px;height:256px;position:relative;display:inline-block;color:white;"
+                 oncontextmenu="return false"
+                 class='cornerstone-enabled-image'
+                 unselectable='on'
+                 onselectstart='return false;'
+                 onmousedown='return false;'>
+                <div id="dicomImage"
+                     style="width:256px;height:256px;top:0px;left:0px; position:absolute;">
+                </div>
+                <div id="mrtopleft" style="position: absolute;top:0px; left:0px">
+                    Patient Name
+                </div>
+                <div id="mrtopright" style="position: absolute;top:0px; right:0px">
+                    Hospital
+                </div>
+                <div id="mrbottomright" style="position: absolute;bottom:0px; right:0px">
+                    <div id="frameRate">FPS: </div>
+                    <div id="zoomText">Zoom:</div>
+                    <div id="imageNumAndCount">Image #</div>
+                    <div id="timePoint">TimeSeries #</div>
+                </div>
+                <div id="mrbottomleft" style="position: absolute;bottom:0px; left:0px">
+                    WW/WC:
+                </div>
+            </div>
+        </div>
+        <div class="col-xs-4">
+            <div id="chart"></div>
+        </div>
+
+    </div>
+
+</body>
+
+<!-- jquery - included to make things easier to demo, not needed or used by the cornerstone library but
+is used by our example image loader-->
+<script src="bower_components/jquery/dist/jquery.min.js"></script>
+
+<!-- include the cornerstone library -->
+<script src="bower_components/cornerstone/dist/cornerstone.min.js"></script>
+<script src="bower_components/cornerstoneMath/dist/cornerstoneMath.min.js"></script>
+
+<!-- include the cornerstone tools library -->
+<script src="lib/cornerstoneTools.js"></script>
+
+<!-- include special code for these examples which provides images -->
+<script src="lib/exampleImageLoader.js"></script>
+<script src="bower_components/dicomParser/dist/dicomParser.js"></script>
+<script src="bower_components/cornerstoneWADOImageLoader/dist/cornerstoneWADOImageLoader.js"></script>
+<script src="bower_components/cornerstone-file-image-loader/dist/cornerstoneFileImageLoader.js"></script>
+<script src="lib/whenall.js"></script>
+
+<script src="lib/readAndParseDICOMFile.js"></script>
+
+<script src="bower_components/c3/c3.js"></script>
+<script src="bower_components/d3/d3.min.js"></script>
+
+<script>
+
+    function foo(dataSetsAndFiles) {
+
+/*
+        var imageIds = [
+            'example://1',
+            'example://2'
+        ];
+
+        var stack = {
+            currentImageIdIndex : 0,
+            imageIds: imageIds
+        };
+*/
+        var timeSeries = {
+            currentStackIndex :0,
+            stacks : [
+            ]
+        };
+
+        var stacksByTemporalPositionId = [];
+
+        dataSetsAndFiles.forEach(function(dataSetAndFile) {
+            var file = dataSetAndFile.file;
+            var dataSet = dataSetAndFile.dataSet;
+            var fileId = cornerstoneFileImageLoader.addFile(file);
+            var imageId = "dicomfile://" + fileId;
+            var temporalPositionIdentifier = dataSet.string('x00200100');
+            if(temporalPositionIdentifier !== undefined) {
+                var id = parseInt(temporalPositionIdentifier) -1;
+                var stack = stacksByTemporalPositionId[id];
+                if(stack === undefined) {
+                    stack = {
+                        currentImageIdIndex : 0,
+                        imageIds: []
+                    }
+                    stacksByTemporalPositionId[id] = stack;
+                }
+                stack.imageIds.push(imageId);
+            }
+        });
+
+        timeSeries.stacks = stacksByTemporalPositionId;
+
+        var element = $('#dicomImage').get(0);
+
+        function onViewportUpdated(e) {
+            $('#mrbottomleft').text("WW/WL:" + Math.round(e.detail.viewport.voi.windowWidth) + "/" + Math.round(e.detail.viewport.voi.windowCenter));
+            $('#zoomText').text("Zoom:" + e.detail.viewport.scale.toFixed(2));
+        };
+        element.addEventListener("CornerstoneViewportUpdated", onViewportUpdated, false);
+
+        function onNewImage(e) {
+            var timeSeriesToolData = cornerstoneTools.getToolState(element, 'timeSeries');
+            if (timeSeriesToolData === undefined || timeSeriesToolData.data === undefined || timeSeriesToolData.data.length === 0) {
+                return;
+            }
+            var timeSeriesData = timeSeriesToolData.data[0];
+
+            var stack = timeSeries.stacks[timeSeries.currentStackIndex];
+
+            $("#imageNumAndCount").text("Image #" + (stack.currentImageIdIndex + 1) + "/" + stack.imageIds.length);
+            $("#timePoint").text("Timepoint #" + (timeSeriesData.currentStackIndex + 1) + "/" + timeSeriesData.stacks.length);
+        }
+        $(element).on("CornerstoneNewImage", onNewImage);
+
+
+
+        // image enable the dicomImage element and the mouse inputs
+        cornerstone.enable(element);
+        cornerstoneTools.mouseInput.enable(element);
+        cornerstoneTools.mouseWheelInput.enable(element);
+        cornerstone.loadImage(timeSeries.stacks[0].imageIds[0]).then(function(image) {
+            // display this image
+            cornerstone.displayImage(element, image);
+
+            // set the stack as tool state
+            cornerstoneTools.addStackStateManager(element, ['stack', 'playClip']);
+            cornerstoneTools.addToolState(element, 'stack', timeSeries.stacks[0]);
+            cornerstoneTools.addTimeSeriesStateManager(element, ['timeSeries', 'timeSeriesPlayer', 'timeSeriesScroll']);
+            cornerstoneTools.addToolState(element, 'timeSeries', timeSeries);
+
+            cornerstoneTools.probeTool4D.activate(element, 1);
+
+            // Enable all tools we want to use with this element
+            //cornerstoneTools.stackScroll.activate(element, 1);
+            //cornerstoneTools.timeSeriesScroll.activate(element, 1);
+
+            cornerstoneTools.stackScrollWheel.activate(element);
+            //cornerstoneTools.timeSeriesScrollWheel.activate(element);
+
+            function activate(id)
+            {
+                $('a').removeClass('active');
+                $(id).addClass('active');
+            }
+
+            $('#playClip').click(function() {
+                activate("#playClip");
+                cornerstoneTools.timeSeriesPlayer.start(element, 31);
+                return false;
+            });
+            $('#stopClip').click(function() {
+                activate("#stopClip");
+                cornerstoneTools.timeSeriesPlayer.stop(element);
+                $("#frameRate").text("");
+                return false;
+            });
+
+        });
+
+        function onMeasurementAdded(e, ed) {
+            ed.measurement.lineSample.samples.unshift('ROI');
+            var chart = c3.generate({
+               data: {
+                   columns: [
+                       ed.measurement.lineSample.samples
+                   ]
+               }
+            });
+
+            /*$('#data').empty();
+            ed.measurement.lineSample.samples.forEach(function(sample) {
+                console.log(sample);
+                $('#data').append('<li>' + sample + '</li>');
+            });*/
+        }
+
+
+        $(cornerstoneTools.MeasurementManager).on('CornerstoneMeasurementAdded',onMeasurementAdded);
+
+    }
+
+    $('#selectFolder').on('change', function(e) {
+        var files = e.target.files;
+        var dicomDir = files[1];
+        if(dicomDir === undefined) {
+            alert('no dicomdir');
+            return;
+        }
+        console.log(dicomDir);
+
+        var deferreds = [];
+        var dataSetsAndFiles = [];
+
+        $.each(files, function(index, file) {
+            var def = readAndParseDICOMFile(file, 'x7fe00010');
+            deferreds.push(def);
+            def.done(function(dataSet) {
+                if(dataSet) {
+                    dataSetsAndFiles.push({
+                        file: file,
+                        dataSet : dataSet
+                    });
+                    //console.log('done ' + dataSet);
+                }
+            });
+        });
+
+        console.log(deferreds.length + ' deferreds');
+        $.whenAll.apply($, deferreds).done(function() {
+            // allo done
+            console.log('all done reading, found ' + dataSetsAndFiles.length + ' datasets');
+            foo(dataSetsAndFiles);
+            ///deferred.resolve(patients);
+        });
+        // 1696 images
+        // 53 time points
+        // 32 images per timepoint
+
+    });
+
+
+
+
+</script>
+</html>
